@@ -1,9 +1,45 @@
 # Semantic Knowledge Base Search
 
-FastAPI backend + a single static HTML/JS frontend, wrapping the Word2Vec
-semantic search pipeline from `Semantic_Similarity_Search_System.ipynb`.
+FastAPI backend + a single static HTML/JS frontend, wrapping a Word2Vec-based
+semantic search pipeline originally developed in
+`Semantic_Similarity_Search_System.ipynb`.
+
+## How the semantic search works
+
+The application converts both the knowledge-base documents and the user's
+search query into numerical vector representations and compares them using
+cosine similarity.
+
+```text
+Knowledge Base CSV
+       ↓
+Text preprocessing
+       ↓
+Tokenisation / lemmatisation
+       ↓
+Word2Vec training
+       ↓
+Word vectors
+       ↓
+Document embeddings
+       ↓
+User query
+       ↓
+Query preprocessing
+       ↓
+Query embedding
+       ↓
+Cosine similarity
+       ↓
+Top-K ranked results
+       ↓
+FastAPI API
+       ↓
+HTML/JavaScript frontend
 
 ```
+## Project structure
+
 semantic-search-app/
 ├── app/
 │   ├── main.py            FastAPI app (API routes + serves static/)
@@ -14,12 +50,14 @@ semantic-search-app/
 │   └── knowledge_base.csv sample dataset (replace with your real export)
 ├── static/
 │   └── index.html         frontend (no build step)
-├── models/                 trained model + embeddings cache (generated)
+├── models/                generated model + embedding cache (not committed)
 ├── requirements.txt
 ├── Dockerfile
 └── README.md
 ```
 
+
+```
 ## 1. About the dataset
 
 The notebook trained on `knowledge_base_improved 1.csv`, which wasn't
@@ -48,7 +86,7 @@ pip install -r requirements.txt
 python data/generate_data.py
 
 # start the API + frontend (first run also trains the model, ~1-2 min)
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Open **http://localhost:8000** for the frontend.
@@ -96,7 +134,7 @@ Visit `http://<server-ip>:8000`.
 
 ```bash
 # on the server, after cloning the repo and creating the venv as in step 2:
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
 ```
 Put this behind nginx / a reverse proxy with TLS for production use.
 
@@ -106,7 +144,9 @@ Put this behind nginx / a reverse proxy with TLS for production use.
   (a few minutes for a large CSV). Cached artifacts are reused after that.
 - `min_count=2` in `Word2Vec` means very rare words are dropped from the
   vocabulary — this mirrors the notebook's original training config.
-- Words never seen during training return a zero vector at query time
-  (same limitation flagged in the notebook re: FastText for unseen words).
-  Swap `Word2Vec` for `FastText` in `search_engine.py` if you want subword
-  handling for typos/rare terms.
+- The current implementation uses Word2Vec. Words that were not observed
+  during Word2Vec training are not represented in its vocabulary and therefore
+  cannot receive a learned word vector at query time. FastText could be used as
+  a future enhancement because it represents words using character subword
+  information, making it more robust for rare words, misspellings and unseen
+  word forms.
